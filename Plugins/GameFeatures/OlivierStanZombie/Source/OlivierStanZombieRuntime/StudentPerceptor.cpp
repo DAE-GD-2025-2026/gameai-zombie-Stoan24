@@ -2,7 +2,14 @@
 
 
 #include "StudentPerceptor.h"
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "Items/BaseItem.h"
+#include "Perception/AIPerceptionComponent.h"
+#include "Zombies/BaseZombie.h"
+#include "Items/BaseItem.h"
 
+#include "Engine/Engine.h"
 
 UStudentPerceptor::UStudentPerceptor()
 {
@@ -21,6 +28,66 @@ void UStudentPerceptor::BeginPlay()
 
 void UStudentPerceptor::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
-	GEngine->AddOnScreenDebugMessage(5, 1.f, FColor::Green, 
-	FString::Printf(TEXT("Saw Something!")));
+	if (!Actor) return;
+
+    auto* Pawn = Cast<APawn>(GetOwner());
+    if (!Pawn) return;
+	auto* Controller = Cast<AAIController>(Cast<APawn>(GetOwner())->GetController());
+	if (!Controller) return;
+	auto* BB = Controller->GetBlackboardComponent();
+	if (!BB) return;
+
+
+    if (Actor->IsA<ABaseZombie>())
+    {
+        if (Stimulus.WasSuccessfullySensed())
+        {
+            KnownZombies.AddUnique(Actor);
+
+            BB->SetValueAsVector(TEXT("ZombieLocation"), Actor->GetActorLocation());
+            BB->SetValueAsObject(TEXT("ZombieActor"), Actor);
+        }
+        else
+        {
+            KnownZombies.Remove(Actor);
+        }
+
+        UpdateClosestZombie(Pawn, BB);
+    }
+    else if (Actor->IsA<ABaseItem>())
+    {
+        if (Stimulus.WasSuccessfullySensed())
+        {
+            if (Actor)
+            {
+                BB->SetValueAsVector(TEXT("ItemLocation"), Actor->GetActorLocation());
+                BB->SetValueAsObject(TEXT("ItemActor"), Actor);
+            }
+        }
+    }
+}
+
+void UStudentPerceptor::UpdateClosestZombie(APawn* Pawn, UBlackboardComponent* BB)
+{
+    KnownZombies.RemoveAll([](AActor* A) { return !IsValid(A); });
+
+    //Find closest
+    AActor* Closest = nullptr;
+    float ClosestDist = FLT_MAX;
+
+    for (AActor* Zombie : KnownZombies)
+    {
+        float Dist = FVector::Dist(Pawn->GetActorLocation(), Zombie->GetActorLocation());
+        if (Dist < ClosestDist)
+        {
+            ClosestDist = Dist;
+            Closest = Zombie;
+        }
+    }
+
+    if (Closest)
+    {
+        BB->SetValueAsVector(TEXT("ZombieLocation"), Closest->GetActorLocation());
+        BB->SetValueAsObject(TEXT("ZombieActor"), Closest);
+    }
 }

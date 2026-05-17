@@ -23,4 +23,12 @@ public:
 
 	UFUNCTION()
 	virtual void OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
+
+
+private:
+
+	void UpdateClosestZombie(APawn* Pawn, UBlackboardComponent* BB);
+
+
+	TArray<AActor*> KnownZombies;
 };

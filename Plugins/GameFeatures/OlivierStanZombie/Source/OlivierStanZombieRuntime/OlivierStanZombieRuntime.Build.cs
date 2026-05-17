@@ -11,7 +11,7 @@ public class OlivierStanZombieRuntime : ModuleRules
 		PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
-			}
+            }
 			);
 				
 		
@@ -38,6 +38,9 @@ public class OlivierStanZombieRuntime : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"AIModule",
+				"NavigationSystem",
+				"GameAI_Zombie"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
@@ -49,18 +52,5 @@ public class OlivierStanZombieRuntime : ModuleRules
 				// ... add any modules that your module loads dynamically here ...
 			}
 			);
-
-		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
-				"CoreUObject",
-				"Engine",
-				"Slate",
-				"SlateCore",
-				"AIModule"
-// ... add private dependencies that you statically link with here ...
-			}
-		);
-
     }
 }
