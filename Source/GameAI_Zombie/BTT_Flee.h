@@ -27,10 +27,13 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Flee")
     float SafeDistance{ 800.f };
 
+    UPROPERTY(EditAnywhere, Category = "Evade")
+    float PredictionTime{ 1.5f };
+
 
     UPROPERTY(EditAnywhere, Category = "Flee")
     FBlackboardKeySelector ZombieActorKey;
 
-    UPROPERTY(EditAnywhere, Category = "Flee")
-    FBlackboardKeySelector ZombieLocationKey;
+private:
+    FVector PredictZombiePosition(AActor* Zombie, APawn* Pawn) const;
 };

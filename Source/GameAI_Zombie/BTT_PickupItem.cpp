@@ -26,6 +26,8 @@ EBTNodeResult::Type UBTT_PickupItem::ExecuteTask(UBehaviorTreeComponent& OwnerCo
     if (!BB) return EBTNodeResult::Failed;
 
     auto* Item = Cast<ABaseItem>(BB->GetValueAsObject(ItemActorKey.SelectedKeyName));
+    if (!Item) return EBTNodeResult::Failed;
+
 
     Controller->MoveToLocation(Item->GetActorLocation());
     
@@ -41,10 +43,21 @@ void UBTT_PickupItem::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMem
     auto* BB = OwnerComp.GetBlackboardComponent();
     auto* Item = Cast<ABaseItem>(BB->GetValueAsObject(ItemActorKey.SelectedKeyName));
 
-    if (!Survivor || !Item) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
+    if (!Survivor || !BB) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
+
+
+    if (!Item)
+    {
+        BB->ClearValue(ItemActorKey.SelectedKeyName);
+        BB->ClearValue(ItemLocationKey.SelectedKeyName);
+        FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+        return;
+    }
 
     auto* Inventory = Survivor->GetComponentByClass<UInventoryComponent>();
     if (!Inventory) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
+
+
 
     float Distance = FVector::Dist(Survivor->GetActorLocation(), Item->GetActorLocation());
 
@@ -60,13 +73,16 @@ void UBTT_PickupItem::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMem
                 Inventory->GrabItem(i, Item);
                 BB->ClearValue(ItemActorKey.SelectedKeyName);
                 BB->ClearValue(ItemLocationKey.SelectedKeyName);
+                BB->SetValueAsBool(TEXT("IsPursuingItem"), false);
                 FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
                 return;
             }
         }
+
         //Inventory full
         BB->ClearValue(ItemActorKey.SelectedKeyName);
         BB->ClearValue(ItemLocationKey.SelectedKeyName);
+        BB->SetValueAsBool(TEXT("IsPursuingItem"), false);
         FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
     }
 }

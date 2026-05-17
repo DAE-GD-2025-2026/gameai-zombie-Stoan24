@@ -58,10 +58,16 @@ void UStudentPerceptor::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
     {
         if (Stimulus.WasSuccessfullySensed())
         {
-            if (Actor)
+            bool bAlreadyPursuing = BB->GetValueAsBool(TEXT("IsPursuingItem"));
+
+            if (!bAlreadyPursuing)
             {
-                BB->SetValueAsVector(TEXT("ItemLocation"), Actor->GetActorLocation());
-                BB->SetValueAsObject(TEXT("ItemActor"), Actor);
+                auto* Item = Cast<ABaseItem>(Actor);
+                if (Item)
+                {
+                    BB->SetValueAsVector(TEXT("ItemLocation"), Item->GetActorLocation());
+                    BB->SetValueAsObject(TEXT("ItemActor"), Item);
+                }
             }
         }
     }

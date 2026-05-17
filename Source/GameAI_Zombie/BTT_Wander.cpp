@@ -8,23 +8,38 @@
 UBTT_Wander::UBTT_Wander()
 {
     NodeName = TEXT("Wander");
+
+    bNotifyTick = true;
 }
 
 EBTNodeResult::Type UBTT_Wander::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
+    CurrentAngle = FMath::RandRange(0.f, 2.f * PI);
+    return EBTNodeResult::InProgress;
+}
+
+void UBTT_Wander::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+{
     auto* Controller = OwnerComp.GetAIOwner();
-    if (!Controller) return EBTNodeResult::Failed;
+    if (!Controller) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
 
     auto Pawn = Controller->GetPawn();
-    if (!Pawn) return EBTNodeResult::Failed;
+    if (!Pawn) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
 
-    FNavLocation RandomLocation;
-    auto* NavSys = UNavigationSystemV1::GetCurrent(Pawn->GetWorld());
-    if (NavSys && NavSys->GetRandomReachablePointInRadius(Pawn->GetActorLocation(), WanderRadius, RandomLocation))
-    {
-        Controller->MoveToLocation(RandomLocation.Location, 50.f);
-        return EBTNodeResult::Succeeded;
-    }
 
-    return EBTNodeResult::Failed;
+    //Randomize angle
+    CurrentAngle += FMath::RandRange(-AngleChangeSpeed, AngleChangeSpeed) * DeltaSeconds;
+
+
+    FVector Forward = Pawn->GetActorForwardVector();
+    FVector CircleCenter = Pawn->GetActorLocation() + Forward * CircleDistance;
+
+
+    FVector WanderTarget = CircleCenter + FVector(
+        FMath::Cos(CurrentAngle) * CircleRadius,
+        FMath::Sin(CurrentAngle) * CircleRadius,
+        0.f
+    );
+
+    Controller->MoveToLocation(WanderTarget, 10.f);
 }
