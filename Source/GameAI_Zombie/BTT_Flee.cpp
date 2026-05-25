@@ -6,12 +6,13 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "NavigationSystem.h"
 #include "GameFramework/PawnMovementComponent.h"
+#include "Survivor/SurvivorPawn.h"
 
 UBTT_Flee::UBTT_Flee()
 {
     NodeName = TEXT("Flee");
 
-    bNotifyTick = true;
+    bNotifyTick = false;
 }
 
 EBTNodeResult::Type UBTT_Flee::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -20,53 +21,88 @@ EBTNodeResult::Type UBTT_Flee::ExecuteTask(UBehaviorTreeComponent& OwnerComp, ui
     if (!Controller) return EBTNodeResult::Failed;
 
     auto* BB = OwnerComp.GetBlackboardComponent();
+    if (!BB) return EBTNodeResult::Failed;
 
     auto* ZombieActor = Cast<AActor>(BB->GetValueAsObject(ZombieActorKey.SelectedKeyName));
     if (!ZombieActor) return EBTNodeResult::Failed;
 
     auto Pawn = Controller->GetPawn();
-    
-    FVector PredictedPos = PredictZombiePosition(ZombieActor, Pawn);
-    FVector FleeDir = (Pawn->GetActorLocation() - PredictedPos).GetSafeNormal();
-    FVector FleeTarget = Pawn->GetActorLocation() + FleeDir * FleeDistance;
+    if (!Pawn) return EBTNodeResult::Failed;
 
-    Controller->MoveToLocation(FleeTarget);
-    return EBTNodeResult::InProgress;
-}
-
-void UBTT_Flee::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
-{
-    auto* Controller = OwnerComp.GetAIOwner();
-    if (!Controller) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
-
-    auto Pawn = Controller->GetPawn();
-    auto* BB = OwnerComp.GetBlackboardComponent();
-    if (!Pawn || !BB) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
-
-
-    auto* ZombieActor = Cast<AActor>(BB->GetValueAsObject(ZombieActorKey.SelectedKeyName));
-    if (!ZombieActor)
-    {
-        FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-        return;
-    }
+    auto Survivor = Cast<ASurvivorPawn>(Pawn);
+    if (!Survivor) return EBTNodeResult::Failed;
 
     float Distance = FVector::Dist(Pawn->GetActorLocation(), ZombieActor->GetActorLocation());
-
     if (Distance >= SafeDistance)
     {
         BB->ClearValue(ZombieActorKey.SelectedKeyName);
-        FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-        return;
+        Survivor->StopRunning();
+        return EBTNodeResult::Succeeded;
     }
 
+    Survivor->StartRunning();
 
+
+    FVector PureAwayDir = (Pawn->GetActorLocation() - ZombieActor->GetActorLocation()).GetSafeNormal();
     FVector PredictedPos = PredictZombiePosition(ZombieActor, Pawn);
     FVector FleeDir = (Pawn->GetActorLocation() - PredictedPos).GetSafeNormal();
-    FVector FleeTarget = Pawn->GetActorLocation() + FleeDir * FleeDistance;
 
-    Controller->MoveToLocation(FleeTarget);
+    if (FVector::DotProduct(FleeDir, PureAwayDir) < 0.f)
+    {
+        FleeDir = PureAwayDir;
+    }
+
+    FleeDir.Z = 0.f;
+    FleeDir.Normalize();
+
+    FVector ProposedTarget = Pawn->GetActorLocation() + (FleeDir * FleeDistance);
+
+    TArray<FVector> PathPoints = Survivor->CalculatePath(ProposedTarget);
+
+    if (PathPoints.Num() <= 1)
+    {
+        FVector BestAlternativeTarget = ProposedTarget;
+        float BestPathScore = -1.f;
+
+        TArray<float> TestAngles = { -45.f, 45.f, -90.f, 90.f };
+
+        for (float Angle : TestAngles)
+        {
+            FVector RotatedDir = FleeDir.RotateAngleAxis(Angle, FVector::UpVector);
+            FVector TestTarget = Pawn->GetActorLocation() + (RotatedDir * FleeDistance);
+
+            TArray<FVector> TestPath = Survivor->CalculatePath(TestTarget);
+
+            if (TestPath.Num() > 1)
+            {
+                float TargetDistToZombie = FVector::Dist(TestPath.Last(), ZombieActor->GetActorLocation());
+
+                if (TargetDistToZombie > BestPathScore)
+                {
+                    BestPathScore = TargetDistToZombie;
+                    BestAlternativeTarget = TestPath.Last();
+                    PathPoints = TestPath;
+                }
+            }
+        }
+    }
+
+    FVector FinalMoveTarget = ProposedTarget;
+    if (PathPoints.Num() > 1)
+    {
+        FinalMoveTarget = PathPoints.Last();
+
+        for (int32 i = 0; i < PathPoints.Num() - 1; ++i)
+        {
+            DrawDebugLine(GetWorld(), PathPoints[i], PathPoints[i + 1], FColor::Red, false, 0.4f, 0, 5.0f);
+        }
+        DrawDebugSphere(GetWorld(), FinalMoveTarget, 30.f, 12, FColor::Red, false, 0.4f, 0, 1.f);
+    }
+
+    Controller->MoveToLocation(FinalMoveTarget, -1.f, false, true, true, true, nullptr, false);
+    return EBTNodeResult::Succeeded;
 }
+
 
 FVector UBTT_Flee::PredictZombiePosition(AActor* Zombie, APawn* Pawn) const
 {
@@ -79,11 +115,9 @@ FVector UBTT_Flee::PredictZombiePosition(AActor* Zombie, APawn* Pawn) const
         }
     }
 
-
     float Distance = FVector::Dist(Pawn->GetActorLocation(), Zombie->GetActorLocation());
     float DynamicPrediction = PredictionTime * (Distance / FleeDistance);
     DynamicPrediction = FMath::Clamp(DynamicPrediction, 0.5f, PredictionTime * 2.f);
-
 
     return Zombie->GetActorLocation() + ZombieVelocity * DynamicPrediction;
 }

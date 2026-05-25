@@ -28,6 +28,10 @@ EBTNodeResult::Type UBTT_PickupItem::ExecuteTask(UBehaviorTreeComponent& OwnerCo
     auto* Item = Cast<ABaseItem>(BB->GetValueAsObject(ItemActorKey.SelectedKeyName));
     if (!Item) return EBTNodeResult::Failed;
 
+    //Debug drawing
+    DrawDebugLine(GetWorld(), Controller->GetPawn()->GetActorLocation(), Item->GetActorLocation(), FColor::Yellow, false, 0.4f, 0, 5.0f);
+
+    DrawDebugSphere(GetWorld(), Item->GetActorLocation(), 30.f, 12, FColor::Yellow, false, 0.4f, 0, 1.f);
 
     Controller->MoveToLocation(Item->GetActorLocation());
     
@@ -36,6 +40,8 @@ EBTNodeResult::Type UBTT_PickupItem::ExecuteTask(UBehaviorTreeComponent& OwnerCo
 
 void UBTT_PickupItem::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
+    Super::TickTask(OwnerComp, NodeMemory, DeltaSeconds);
+
     auto* Controller = OwnerComp.GetAIOwner();
     if (!Controller) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
 
@@ -50,6 +56,7 @@ void UBTT_PickupItem::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMem
     {
         BB->ClearValue(ItemActorKey.SelectedKeyName);
         BB->ClearValue(ItemLocationKey.SelectedKeyName);
+        BB->SetValueAsBool(TEXT("IsPursuingItem"), false);
         FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
         return;
     }
@@ -59,9 +66,10 @@ void UBTT_PickupItem::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMem
 
 
 
-    float Distance = FVector::Dist(Survivor->GetActorLocation(), Item->GetActorLocation());
+    float Distance = FVector::Dist2D(Survivor->GetActorLocation(), Item->GetActorLocation());
+    UE_LOG(LogTemp, Warning, TEXT("Survivor Pos: %s | Item Pos: %s"), *Survivor->GetActorLocation().ToString(), *Item->GetActorLocation().ToString());
 
-    if (Distance <= Inventory->GetPickupRange())
+    if (Distance < Inventory->GetPickupRange())
     {
         GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow,
             FString::Printf(TEXT("Picking up: %s"), *Item->GetClass()->GetName()));

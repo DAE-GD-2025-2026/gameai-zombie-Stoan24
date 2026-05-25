@@ -30,8 +30,6 @@ void UStudentPerceptor::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
 	if (!Actor) return;
 
-    auto* Pawn = Cast<APawn>(GetOwner());
-    if (!Pawn) return;
 	auto* Controller = Cast<AAIController>(Cast<APawn>(GetOwner())->GetController());
 	if (!Controller) return;
 	auto* BB = Controller->GetBlackboardComponent();
@@ -43,16 +41,7 @@ void UStudentPerceptor::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
         if (Stimulus.WasSuccessfullySensed())
         {
             KnownZombies.AddUnique(Actor);
-
-            BB->SetValueAsVector(TEXT("ZombieLocation"), Actor->GetActorLocation());
-            BB->SetValueAsObject(TEXT("ZombieActor"), Actor);
         }
-        else
-        {
-            KnownZombies.Remove(Actor);
-        }
-
-        UpdateClosestZombie(Pawn, BB);
     }
     else if (Actor->IsA<ABaseItem>())
     {
@@ -73,17 +62,43 @@ void UStudentPerceptor::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
     }
 }
 
+void UStudentPerceptor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+    Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+    auto* Pawn = Cast<APawn>(GetOwner());
+    if (!Pawn) return;
+
+    auto* Controller = Cast<AAIController>(Pawn->GetController());
+    if (!Controller) return;
+
+    auto* BB = Controller->GetBlackboardComponent();
+    if (!BB) return;
+
+    UpdateClosestZombie(Pawn, BB);
+}
+
 void UStudentPerceptor::UpdateClosestZombie(APawn* Pawn, UBlackboardComponent* BB)
 {
     KnownZombies.RemoveAll([](AActor* A) { return !IsValid(A); });
 
-    //Find closest
     AActor* Closest = nullptr;
     float ClosestDist = FLT_MAX;
+
+    float ForgetDistance = 1800.f;
+
+    TArray<AActor*> ZombiesToForget;
 
     for (AActor* Zombie : KnownZombies)
     {
         float Dist = FVector::Dist(Pawn->GetActorLocation(), Zombie->GetActorLocation());
+
+        if (Dist > ForgetDistance)
+        {
+            ZombiesToForget.Add(Zombie);
+            continue;
+        }
+
         if (Dist < ClosestDist)
         {
             ClosestDist = Dist;
@@ -91,9 +106,18 @@ void UStudentPerceptor::UpdateClosestZombie(APawn* Pawn, UBlackboardComponent* B
         }
     }
 
+    for (AActor* StaleZombie : ZombiesToForget)
+    {
+        KnownZombies.Remove(StaleZombie);
+    }
+
     if (Closest)
     {
         BB->SetValueAsVector(TEXT("ZombieLocation"), Closest->GetActorLocation());
         BB->SetValueAsObject(TEXT("ZombieActor"), Closest);
+    }
+    else
+    {
+        BB->ClearValue(TEXT("ZombieActor"));
     }
 }

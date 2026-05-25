@@ -19,7 +19,6 @@ public:
 
 protected:
     virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
-    virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
     UPROPERTY(EditAnywhere, Category = "Flee")
     float FleeDistance{ 600.f };
@@ -30,10 +29,11 @@ protected:
     UPROPERTY(EditAnywhere, Category = "Evade")
     float PredictionTime{ 1.5f };
 
-
     UPROPERTY(EditAnywhere, Category = "Flee")
     FBlackboardKeySelector ZombieActorKey;
 
 private:
     FVector PredictZombiePosition(AActor* Zombie, APawn* Pawn) const;
+
+    float RepathTimer{ 0.f };
 };

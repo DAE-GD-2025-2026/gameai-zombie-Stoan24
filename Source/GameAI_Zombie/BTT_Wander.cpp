@@ -4,6 +4,8 @@
 #include "BTT_Wander.h"
 #include "AIController.h"
 #include "NavigationSystem.h"
+#include "Navigation/PathFollowingComponent.h"
+#include "Survivor/SurvivorPawn.h"
 
 UBTT_Wander::UBTT_Wander()
 {
@@ -14,32 +16,52 @@ UBTT_Wander::UBTT_Wander()
 
 EBTNodeResult::Type UBTT_Wander::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-    CurrentAngle = FMath::RandRange(0.f, 2.f * PI);
-    return EBTNodeResult::InProgress;
-}
-
-void UBTT_Wander::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
-{
     auto* Controller = OwnerComp.GetAIOwner();
-    if (!Controller) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
+    if (!Controller) return EBTNodeResult::Failed;
 
     auto Pawn = Controller->GetPawn();
-    if (!Pawn) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
+    if (!Pawn) return EBTNodeResult::Failed;
+
+    auto* Survivor = Cast<ASurvivorPawn>(Pawn);
+    if (!Survivor) return EBTNodeResult::Failed;
 
 
-    //Randomize angle
-    CurrentAngle += FMath::RandRange(-AngleChangeSpeed, AngleChangeSpeed) * DeltaSeconds;
-
-
+    CurrentAngle = FMath::RandRange(0.f, 2.f * PI);
     FVector Forward = Pawn->GetActorForwardVector();
     FVector CircleCenter = Pawn->GetActorLocation() + Forward * CircleDistance;
 
-
-    FVector WanderTarget = CircleCenter + FVector(
+    FVector ProposedWanderTarget = CircleCenter + FVector(
         FMath::Cos(CurrentAngle) * CircleRadius,
         FMath::Sin(CurrentAngle) * CircleRadius,
         0.f
     );
 
-    Controller->MoveToLocation(WanderTarget, 10.f);
+
+    TArray<FVector> PathPoints = Survivor->CalculatePath(ProposedWanderTarget);
+
+
+    if (PathPoints.Num() <= 1)
+    {
+        return EBTNodeResult::Failed;
+    }
+
+
+    FVector SafeWanderTarget = PathPoints.Last();
+
+    Controller->MoveToLocation(SafeWanderTarget, 10.f, false, true, true, true, nullptr, false);
+
+    return EBTNodeResult::Succeeded;
+}
+
+void UBTT_Wander::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+{
+    Super::TickTask(OwnerComp, NodeMemory, DeltaSeconds);
+
+    auto* Controller = OwnerComp.GetAIOwner();
+    if (!Controller) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
+
+    if (Controller->GetMoveStatus() == EPathFollowingStatus::Idle)
+    {
+        FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
+    }
 }
