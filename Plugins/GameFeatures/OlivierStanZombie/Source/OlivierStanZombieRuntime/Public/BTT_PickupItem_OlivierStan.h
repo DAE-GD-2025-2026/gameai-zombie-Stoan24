@@ -4,25 +4,25 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "BTT_PickupItem.generated.h"
+#include "BTT_PickupItem_OlivierStan.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class GAMEAI_ZOMBIE_API UBTT_PickupItem : public UBTTaskNode
+class OLIVIERSTANZOMBIERUNTIME_API UBTT_PickupItem_OlivierStan : public UBTTaskNode
 {
 	GENERATED_BODY()
 
 public:
-    UBTT_PickupItem();
+    UBTT_PickupItem_OlivierStan();
 protected:
     virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
     virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 
-	UPROPERTY(EditAnywhere, Category = "Pickup")
+    UPROPERTY(EditAnywhere, Category = "Pickup")
     FBlackboardKeySelector ItemActorKey;
     UPROPERTY(EditAnywhere, Category = "Pickup")
     FBlackboardKeySelector ItemLocationKey;

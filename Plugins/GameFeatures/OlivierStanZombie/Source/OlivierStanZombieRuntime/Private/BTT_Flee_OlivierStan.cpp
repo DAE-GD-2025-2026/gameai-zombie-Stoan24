@@ -1,21 +1,21 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BTT_Flee.h"
+#include "BTT_Flee_OlivierStan.h"
+
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "NavigationSystem.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Survivor/SurvivorPawn.h"
 
-UBTT_Flee::UBTT_Flee()
+UBTT_Flee_OlivierStan::UBTT_Flee_OlivierStan()
 {
-    NodeName = TEXT("Flee");
+	NodeName = TEXT("Flee");
 
-    bNotifyTick = false;
+	bNotifyTick = false;
 }
 
-EBTNodeResult::Type UBTT_Flee::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTT_Flee_OlivierStan::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
     auto* Controller = OwnerComp.GetAIOwner();
     if (!Controller) return EBTNodeResult::Failed;
@@ -103,8 +103,7 @@ EBTNodeResult::Type UBTT_Flee::ExecuteTask(UBehaviorTreeComponent& OwnerComp, ui
     return EBTNodeResult::Succeeded;
 }
 
-
-FVector UBTT_Flee::PredictZombiePosition(AActor* Zombie, APawn* Pawn) const
+FVector UBTT_Flee_OlivierStan::PredictZombiePosition(AActor* Zombie, APawn* Pawn) const
 {
     FVector ZombieVelocity = FVector::ZeroVector;
     if (auto* ZombiePawn = Cast<APawn>(Zombie))

@@ -1,23 +1,22 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-// BTTask_PickupItem.cpp
-#include "BTT_PickupItem.h"
+
+#include "BTT_PickupItem_OlivierStan.h"
+
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Common/InventoryComponent.h"
 #include "Items/BaseItem.h"
 #include "Survivor/SurvivorPawn.h"
 
-#include "Engine/Engine.h"
-
-UBTT_PickupItem::UBTT_PickupItem()
+UBTT_PickupItem_OlivierStan::UBTT_PickupItem_OlivierStan()
 {
-    NodeName = TEXT("Pickup Item");
+	NodeName = TEXT("Pickup Item");
 
-    bNotifyTick = true;
+	bNotifyTick = true;
 }
 
-EBTNodeResult::Type UBTT_PickupItem::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTT_PickupItem_OlivierStan::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
     auto* Controller = OwnerComp.GetAIOwner();
     if (!Controller) return EBTNodeResult::Failed;
@@ -34,11 +33,11 @@ EBTNodeResult::Type UBTT_PickupItem::ExecuteTask(UBehaviorTreeComponent& OwnerCo
     DrawDebugSphere(GetWorld(), Item->GetActorLocation(), 30.f, 12, FColor::Yellow, false, 0.4f, 0, 1.f);
 
     Controller->MoveToLocation(Item->GetActorLocation());
-    
+
     return EBTNodeResult::InProgress;
 }
 
-void UBTT_PickupItem::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTT_PickupItem_OlivierStan::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
     Super::TickTask(OwnerComp, NodeMemory, DeltaSeconds);
 

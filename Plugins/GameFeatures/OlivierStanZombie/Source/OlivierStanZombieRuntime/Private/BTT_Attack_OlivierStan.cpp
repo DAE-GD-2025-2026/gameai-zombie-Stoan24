@@ -1,19 +1,20 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BTT_AttackZombie.h"
+#include "BTT_Attack_OlivierStan.h"
+
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "Survivor/SurvivorPawn.h"
 #include "Common/InventoryComponent.h"
+#include "Survivor/SurvivorPawn.h"
 #include "Items/BaseItem.h"
 
-UBTT_AttackZombie::UBTT_AttackZombie()
+UBTT_Attack_OlivierStan::UBTT_Attack_OlivierStan()
 {
-    NodeName = "Attack Zombie";
+    NodeName = "Attack";
 }
 
-EBTNodeResult::Type UBTT_AttackZombie::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTT_Attack_OlivierStan::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
     auto* Controller = OwnerComp.GetAIOwner();
     auto* BB = OwnerComp.GetBlackboardComponent();
@@ -40,20 +41,20 @@ EBTNodeResult::Type UBTT_AttackZombie::ExecuteTask(UBehaviorTreeComponent& Owner
                 WeaponToUse = Item;
                 break;
             }
-		}
-	}
+        }
+    }
 
-	if (!WeaponToUse) return EBTNodeResult::Failed;
-
-
-	Controller->StopMovement();
-	FVector LookDir = (Zombie->GetActorLocation() - Survivor->GetActorLocation()).GetSafeNormal2D();
-	Survivor->SetActorRotation(LookDir.Rotation());
+    if (!WeaponToUse) return EBTNodeResult::Failed;
 
 
-	WeaponToUse->UseItem(*Survivor);
+    Controller->StopMovement();
+    FVector LookDir = (Zombie->GetActorLocation() - Survivor->GetActorLocation()).GetSafeNormal2D();
+    Survivor->SetActorRotation(LookDir.Rotation());
 
-	DrawDebugLine(GetWorld(), Survivor->GetActorLocation(), Zombie->GetActorLocation(), FColor::Orange, false, 0.2f, 0, 4.0f);
 
-	return EBTNodeResult::Succeeded;
+    WeaponToUse->UseItem(*Survivor);
+
+    DrawDebugLine(GetWorld(), Survivor->GetActorLocation(), Zombie->GetActorLocation(), FColor::Orange, false, 0.2f, 0, 4.0f);
+
+    return EBTNodeResult::Succeeded;
 }

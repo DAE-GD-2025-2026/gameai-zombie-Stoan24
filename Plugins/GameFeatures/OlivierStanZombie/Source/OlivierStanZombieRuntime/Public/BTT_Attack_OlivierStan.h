@@ -4,24 +4,24 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "BTT_FindScavengePoint.generated.h"
+#include "BTT_Attack_OlivierStan.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class GAMEAI_ZOMBIE_API UBTT_FindScavengePoint : public UBTTaskNode
+class OLIVIERSTANZOMBIERUNTIME_API UBTT_Attack_OlivierStan : public UBTTaskNode
 {
 	GENERATED_BODY()
 
 public:
-    UBTT_FindScavengePoint();
+    UBTT_Attack_OlivierStan();
     virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
 protected:
     UPROPERTY(EditAnywhere, Category = "Blackboard")
-    FBlackboardKeySelector HouseActorKey;
+    FBlackboardKeySelector ZombieActorKey;
 
-    UPROPERTY(EditAnywhere, Category = "Blackboard")
-    FBlackboardKeySelector ScavengeLocationKey;
+    UPROPERTY(EditAnywhere, Category = "Combat")
+    float MaxCombatRange = 800.f;
 };

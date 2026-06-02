@@ -4,18 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTService.h"
-#include "BTS_MonitorStatus.generated.h"
+#include "BTS_MonitorStatus_OlivierStan.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class GAMEAI_ZOMBIE_API UBTS_MonitorStatus : public UBTService
+class OLIVIERSTANZOMBIERUNTIME_API UBTS_MonitorStatus_OlivierStan : public UBTService
 {
 	GENERATED_BODY()
 
 public:
-    UBTS_MonitorStatus();
+    UBTS_MonitorStatus_OlivierStan();
 
 protected:
     virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;

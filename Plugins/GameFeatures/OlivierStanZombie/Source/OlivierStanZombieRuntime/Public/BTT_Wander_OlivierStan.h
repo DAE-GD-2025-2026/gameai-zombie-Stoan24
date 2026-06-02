@@ -4,18 +4,18 @@
 
 #include "CoreMinimal.h"
 #include "BehaviorTree/BTTaskNode.h"
-#include "BTT_Wander.generated.h"
+#include "BTT_Wander_OlivierStan.generated.h"
 
 /**
- * 
+ *
  */
 UCLASS()
-class GAMEAI_ZOMBIE_API UBTT_Wander : public UBTTaskNode
+class OLIVIERSTANZOMBIERUNTIME_API UBTT_Wander_OlivierStan : public UBTTaskNode
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-    UBTT_Wander();
+    UBTT_Wander_OlivierStan();
 
 protected:
     virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;

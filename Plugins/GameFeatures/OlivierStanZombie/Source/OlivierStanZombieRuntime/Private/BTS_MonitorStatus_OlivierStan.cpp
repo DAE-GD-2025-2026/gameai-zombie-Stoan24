@@ -1,7 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BTS_MonitorStatus.h"
+#include "BTS_MonitorStatus_OlivierStan.h"
+
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "Survivor/SurvivorPawn.h"
@@ -10,13 +11,13 @@
 #include "Common/StaminaComponent.h"
 #include "Items/BaseItem.h"
 
-UBTS_MonitorStatus::UBTS_MonitorStatus()
+UBTS_MonitorStatus_OlivierStan::UBTS_MonitorStatus_OlivierStan()
 {
-    NodeName = "Monitor Status and Inventory";
-    Interval = 0.5f;
+	NodeName = "Monitor Status and Inventory";
+	Interval = 0.5f;
 }
 
-void UBTS_MonitorStatus::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTS_MonitorStatus_OlivierStan::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
     Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 

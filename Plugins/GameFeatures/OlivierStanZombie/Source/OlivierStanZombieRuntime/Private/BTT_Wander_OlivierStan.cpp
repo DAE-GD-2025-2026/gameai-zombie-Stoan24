@@ -1,20 +1,20 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BTT_Wander.h"
+#include "BTT_Wander_OlivierStan.h"
+
 #include "AIController.h"
-#include "NavigationSystem.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "Survivor/SurvivorPawn.h"
 
-UBTT_Wander::UBTT_Wander()
+UBTT_Wander_OlivierStan::UBTT_Wander_OlivierStan()
 {
-    NodeName = TEXT("Wander");
+	NodeName = TEXT("Wander");
 
-    bNotifyTick = true;
+	bNotifyTick = true;
 }
 
-EBTNodeResult::Type UBTT_Wander::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTT_Wander_OlivierStan::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
     auto* Controller = OwnerComp.GetAIOwner();
     if (!Controller) return EBTNodeResult::Failed;
@@ -53,7 +53,7 @@ EBTNodeResult::Type UBTT_Wander::ExecuteTask(UBehaviorTreeComponent& OwnerComp, 
     return EBTNodeResult::Succeeded;
 }
 
-void UBTT_Wander::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTT_Wander_OlivierStan::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
     Super::TickTask(OwnerComp, NodeMemory, DeltaSeconds);
 

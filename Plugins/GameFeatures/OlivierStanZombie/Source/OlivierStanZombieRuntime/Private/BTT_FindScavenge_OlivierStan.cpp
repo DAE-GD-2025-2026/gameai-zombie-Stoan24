@@ -1,17 +1,17 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BTT_FindScavengePoint.h"
+#include "BTT_FindScavenge_OlivierStan.h"
+
 #include "BehaviorTree/BlackboardComponent.h"
-#include "Village/House/House.h"
 #include "NavigationSystem.h"
 
-UBTT_FindScavengePoint::UBTT_FindScavengePoint()
+UBTT_FindScavenge_OlivierStan::UBTT_FindScavenge_OlivierStan()
 {
-    NodeName = "Find Scavenge Point";
+	NodeName = "Find Scavenge Point";
 }
 
-EBTNodeResult::Type UBTT_FindScavengePoint::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTT_FindScavenge_OlivierStan::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
     auto* BB = OwnerComp.GetBlackboardComponent();
     if (!BB) return EBTNodeResult::Failed;
