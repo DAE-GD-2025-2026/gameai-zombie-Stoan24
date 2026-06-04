@@ -10,6 +10,8 @@
 #include "Items/BaseItem.h"
 
 #include "Engine/Engine.h"
+#include "Engine/OverlapResult.h"
+#include "Village/House/House.h"
 
 UStudentPerceptor::UStudentPerceptor()
 {
@@ -30,6 +32,8 @@ void UStudentPerceptor::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
 {
 	if (!Actor) return;
 
+    auto* Pawn = Cast<APawn>(GetOwner());
+    if (!Pawn) return;
 	auto* Controller = Cast<AAIController>(Cast<APawn>(GetOwner())->GetController());
 	if (!Controller) return;
 	auto* BB = Controller->GetBlackboardComponent();
@@ -47,16 +51,49 @@ void UStudentPerceptor::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
     {
         if (Stimulus.WasSuccessfullySensed())
         {
-            bool bAlreadyPursuing = BB->GetValueAsBool(TEXT("IsPursuingItem"));
-
-            if (!bAlreadyPursuing)
+            ABaseItem* SensedItem = Cast<ABaseItem>(Actor);
+            if (SensedItem)
             {
-                auto* Item = Cast<ABaseItem>(Actor);
-                if (Item)
+                ItemMemory.AddUnique(SensedItem);
+
+                bool bAlreadyPursuing = BB->GetValueAsBool(TEXT("IsPursuingItem"));
+                    if (!bAlreadyPursuing)
+                    {
+                        BB->SetValueAsVector(TEXT("ItemLocation"), SensedItem->GetActorLocation());
+                            BB->SetValueAsObject(TEXT("ItemActor"), SensedItem);
+                    }
+            }
+        }
+    }
+
+    if (Actor->IsA<AHouse>() && Stimulus.WasSuccessfullySensed())
+    {
+        if (UnvisitedHouses.Num() == 0 && !GloballyVisitedHouses.Contains(Actor))
+        {
+            FVector SearchOrigin = Actor->GetActorLocation();
+            TArray<FOverlapResult> Overlaps;
+            FCollisionShape Sphere = FCollisionShape::MakeSphere(3500.f); //Cheat? Find houses surrounding the 'seen' house
+            FCollisionQueryParams Params;
+            Params.AddIgnoredActor(Pawn);
+
+            if (GetWorld()->OverlapMultiByObjectType(Overlaps, SearchOrigin, FQuat::Identity, FCollisionObjectQueryParams::AllObjects, Sphere, Params))
+            {
+                for (const FOverlapResult& Result : Overlaps)
                 {
-                    BB->SetValueAsVector(TEXT("ItemLocation"), Item->GetActorLocation());
-                    BB->SetValueAsObject(TEXT("ItemActor"), Item);
+                    AActor* OverlappedActor = Result.GetActor();
+                    if (OverlappedActor && OverlappedActor->IsA<AHouse>())
+                    {
+                        if (!GloballyVisitedHouses.Contains(OverlappedActor))
+                        {
+                            UnvisitedHouses.AddUnique(OverlappedActor);
+                        }
+                    }
                 }
+            }
+
+            if (UnvisitedHouses.Num() > 0)
+            {
+                BB->SetValueAsBool(TEXT("HasVillageTarget"), true);
             }
         }
     }
@@ -119,5 +156,48 @@ void UStudentPerceptor::UpdateClosestZombie(APawn* Pawn, UBlackboardComponent* B
     else
     {
         BB->ClearValue(TEXT("ZombieActor"));
+    }
+}
+
+AActor* UStudentPerceptor::PopNextVillageHouse()
+{
+    if (UnvisitedHouses.Num() == 0) return nullptr;
+
+    AActor* NextHouse = UnvisitedHouses[0];
+    UnvisitedHouses.RemoveAt(0);
+
+    if (NextHouse)
+    {
+        GloballyVisitedHouses.Add(NextHouse);
+    }
+    return NextHouse;
+}
+
+ABaseItem* UStudentPerceptor::FindClosestRememberedItem(FVector CurrentLocation, EItemType DesiredType)
+{
+    ABaseItem* BestItem = nullptr;
+    float BestDist = FLT_MAX;
+
+
+    for (ABaseItem* Item : ItemMemory)
+    {
+        if (Item && Item->GetItemType() == DesiredType)
+        {
+            float Dist = FVector::Dist(CurrentLocation, Item->GetActorLocation());
+            if (Dist < BestDist)
+            {
+                BestDist = Dist;
+                BestItem = Item;
+            }
+        }
+    }
+    return BestItem;
+}
+
+void UStudentPerceptor::ForgetPickedUpItem(ABaseItem* ItemActor)
+{
+    if (ItemActor)
+    {
+        ItemMemory.Remove(ItemActor);
     }
 }
