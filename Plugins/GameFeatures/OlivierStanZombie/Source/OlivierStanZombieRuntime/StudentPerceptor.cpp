@@ -7,10 +7,11 @@
 #include "Items/BaseItem.h"
 #include "Perception/AIPerceptionComponent.h"
 #include "Zombies/BaseZombie.h"
-#include "Items/BaseItem.h"
 
 #include "Engine/Engine.h"
 #include "Engine/OverlapResult.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Navigation/PathFollowingComponent.h"
 #include "Village/House/House.h"
 
 UStudentPerceptor::UStudentPerceptor()
@@ -57,11 +58,11 @@ void UStudentPerceptor::OnPerceptionUpdated(AActor* Actor, FAIStimulus Stimulus)
                 ItemMemory.AddUnique(SensedItem);
 
                 bool bAlreadyPursuing = BB->GetValueAsBool(TEXT("IsPursuingItem"));
-                    if (!bAlreadyPursuing)
-                    {
-                        BB->SetValueAsVector(TEXT("ItemLocation"), SensedItem->GetActorLocation());
-                            BB->SetValueAsObject(TEXT("ItemActor"), SensedItem);
-                    }
+            	if (!bAlreadyPursuing)
+            	{
+            		BB->SetValueAsVector(TEXT("ItemLocation"), SensedItem->GetActorLocation());
+            		BB->SetValueAsObject(TEXT("ItemActor"), SensedItem);
+            	}
             }
         }
     }
@@ -113,6 +114,8 @@ void UStudentPerceptor::TickComponent(float DeltaTime, ELevelTick TickType, FAct
     if (!BB) return;
 
     UpdateClosestZombie(Pawn, BB);
+    UpdateMovemennt(DeltaTime, Pawn, Controller);
+
 }
 
 void UStudentPerceptor::UpdateClosestZombie(APawn* Pawn, UBlackboardComponent* BB)
@@ -122,7 +125,7 @@ void UStudentPerceptor::UpdateClosestZombie(APawn* Pawn, UBlackboardComponent* B
     AActor* Closest = nullptr;
     float ClosestDist = FLT_MAX;
 
-    float ForgetDistance = 1800.f;
+    const float ForgetDistance = 1800.f;
 
     TArray<AActor*> ZombiesToForget;
 
@@ -156,6 +159,66 @@ void UStudentPerceptor::UpdateClosestZombie(APawn* Pawn, UBlackboardComponent* B
     else
     {
         BB->ClearValue(TEXT("ZombieActor"));
+    }
+}
+
+void UStudentPerceptor::UpdateMovemennt(float DeltaTime, APawn* Pawn, const AAIController* Controller)
+{
+    if (Controller->GetMoveStatus() == EPathFollowingStatus::Type::Moving)
+    {
+        auto* MovementComp = Pawn->FindComponentByClass<UCharacterMovementComponent>();
+        if (MovementComp)
+        {
+            FVector CharacterLocation = Pawn->GetActorLocation();
+
+
+            FVector BasePathDirection = Controller->GetImmediateMoveDestination() - CharacterLocation;
+            BasePathDirection.Z = 0.0f;
+            BasePathDirection.Normalize();
+
+            FVector TargetVelocity = BasePathDirection * MovementComp->MaxWalkSpeed;
+            FVector TotalRepulsionForce = FVector::ZeroVector;
+
+
+            for (AActor* Zombie : KnownZombies)
+            {
+                if (IsValid(Zombie))
+                {
+                    FVector ZombieLocation = Zombie->GetActorLocation();
+                    float Distance = FVector::Dist2D(CharacterLocation, ZombieLocation);
+
+
+                    if (Distance < DangerRadius && Distance > 1.0f)
+                    {
+                        FVector PushDirection = CharacterLocation - ZombieLocation;
+                        PushDirection.Z = 0.0f;
+                        PushDirection.Normalize();
+
+
+                        float ProximityFactor = 1.0f - (Distance / DangerRadius);
+                        TotalRepulsionForce += PushDirection * (RepulsionStrength * ProximityFactor);
+                    }
+                }
+            }
+
+
+            if (!TotalRepulsionForce.IsZero())
+            {
+                TargetVelocity += TotalRepulsionForce;
+                TargetVelocity = TargetVelocity.GetClampedToMaxSize(MovementComp->MaxWalkSpeed);
+
+                MovementComp->Velocity = FMath::VInterpTo(MovementComp->Velocity, TargetVelocity, DeltaTime, 8.0f);
+
+
+                if (MovementComp->Velocity.SizeSquared() > 100.0f)
+                {
+                    FRotator TargetRotation = MovementComp->Velocity.Rotation();
+                    TargetRotation.Pitch = 0.0f;
+                    TargetRotation.Roll = 0.0f;
+                    Pawn->SetActorRotation(FMath::RInterpTo(Pawn->GetActorRotation(), TargetRotation, DeltaTime, 10.0f));
+                }
+            }
+        }
     }
 }
 

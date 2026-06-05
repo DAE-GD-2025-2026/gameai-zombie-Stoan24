@@ -29,7 +29,12 @@ EBTNodeResult::Type UBTT_FindScavenge_OlivierStan::ExecuteTask(UBehaviorTreeComp
 
     FNavLocation TargetPoint;
 
-    bool bSuccess = NavSys->GetRandomReachablePointInRadius(Origin, Extents.Size2D() * 0.7f, TargetPoint);
+    bool bSuccess = NavSys->ProjectPointToNavigation(Origin, TargetPoint, FVector(200.f, 200.f, 500.f));
+
+    if (!bSuccess)
+    {
+        bSuccess = NavSys->GetRandomReachablePointInRadius(Origin, 150.f, TargetPoint);
+    }
 
     if (bSuccess)
     {

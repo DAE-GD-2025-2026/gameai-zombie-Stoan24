@@ -21,7 +21,7 @@ void UBTS_MonitorStatus_OlivierStan::TickNode(UBehaviorTreeComponent& OwnerComp,
 {
     Super::TickNode(OwnerComp, NodeMemory, DeltaSeconds);
 
-    auto* Controller = OwnerComp.GetAIOwner();
+    const auto* Controller = OwnerComp.GetAIOwner();
     if (!Controller) return;
 
     auto* Survivor = Cast<ASurvivorPawn>(Controller->GetPawn());
@@ -34,125 +34,142 @@ void UBTS_MonitorStatus_OlivierStan::TickNode(UBehaviorTreeComponent& OwnerComp,
 
     if (!Inventory || !HealthComp || !StaminaComp) return;
 
-    EItemType HighestPriorityNeed = EItemType::Garbage;
+    //Health & Stamina
+
+    TArray<ABaseItem*> Items = Inventory->GetInventory();
 
     if (HealthComp->GetHealth() <= 6)
     {
-        HighestPriorityNeed = EItemType::Medkit;
+        for (int i = 0; i < Items.Num(); ++i)
+        {
+            if (Items[i] && Items[i]->GetItemType() == EItemType::Medkit)
+            {
+                Inventory->UseItem(i);
+                Inventory->RemoveItem(i);
+
+                GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Low Health --> used Medkit"));
+                break;
+            }
+        }
     }
-    else if (StaminaComp->GetCurrentStamina() < 3.0f)
+
+    if (StaminaComp->GetCurrentStamina() < 3.0f)
     {
-        HighestPriorityNeed = EItemType::Food;
+        for (int i = 0; i < Items.Num(); ++i)
+        {
+            if (Items[i] && Items[i]->GetItemType() == EItemType::Food)
+            {
+                Inventory->UseItem(i);
+                Inventory->RemoveItem(i);
+                GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Low Stamina --> ate Food"));
+                break;
+            }
+        }
+    }
+
+    //Inventory Management
+
+    int PistolCount = 0;
+    int ShotgunCount = 0;
+    int FoodCount = 0;
+    int MedkitCount = 0;
+    int TotalItems = 0;
+
+    int PistolWithAmmoCount = 0;
+    int ShotgunWithAmmoCount = 0;
+
+    for (int i = 0; i < Items.Num(); ++i)
+    {
+        ABaseItem* Item = Items[i];
+
+        if (Item != nullptr)
+        {
+            bool bIsSpentPistol = (Item->GetItemType() == EItemType::Pistol && Item->GetValue() <= 0);
+            bool bIsSpentShotgun = (Item->GetItemType() == EItemType::Shotgun && Item->GetValue() <= 0);
+
+            if (bIsSpentPistol || bIsSpentShotgun)
+            {
+                Inventory->RemoveItem(i);
+                GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, TEXT("Removed Weapon --> no ammo left"));
+                continue;
+            }
+
+            TotalItems++;
+
+            if (Item->GetItemType() == EItemType::Pistol)
+            {
+                PistolCount++;
+                if (Item->GetValue() > 0) PistolWithAmmoCount++;
+            }
+            if (Item->GetItemType() == EItemType::Shotgun)
+            {
+                ShotgunCount++;
+                if (Item->GetValue() > 0) ShotgunWithAmmoCount++;
+            }
+
+            if (Item->GetItemType() == EItemType::Food) FoodCount++;
+            if (Item->GetItemType() == EItemType::Medkit) MedkitCount++;
+        }
+    }
+
+    //Combat
+    if (PistolWithAmmoCount == 0 || ShotgunWithAmmoCount == 0)
+    {
+        BB->SetValueAsBool(NeedsWeaponsKey.SelectedKeyName, true);
     }
     else
     {
-        int32 PistolCount = 0;
-        int32 ShotgunCount = 0;
-
-        for (ABaseItem* Item : Inventory->GetInventory())
-        {
-            if (Item != nullptr)
-            {
-                if (Item->GetItemType() == EItemType::Pistol && Item->GetValue() > 0) PistolCount++;
-                if (Item->GetItemType() == EItemType::Shotgun && Item->GetValue() > 0) ShotgunCount++;
-            }
-        }
-
-        if (PistolCount == 0)
-        {
-            HighestPriorityNeed = EItemType::Pistol;
-        }
-        else if (ShotgunCount == 0)
-        {
-            HighestPriorityNeed = EItemType::Shotgun;
-        }
+        BB->ClearValue(NeedsWeaponsKey.SelectedKeyName);
     }
 
-    BB->SetValueAsEnum(TEXT("NeededItemType"), static_cast<uint8>(HighestPriorityNeed));
+    //Active needs
+    EItemType HighestPriorityNeed = EItemType::Garbage;
 
-    //Health & Stamina
-    //TArray<ABaseItem*> Items = Inventory->GetInventory();
+    if (PistolCount == 0)
+    {
+        HighestPriorityNeed = EItemType::Pistol;
+    }
+    else if (HealthComp->GetHealth() <= 6 && MedkitCount == 0)
+    {
+        HighestPriorityNeed = EItemType::Medkit;
+    }
+    else if (StaminaComp->GetCurrentStamina() < 3.0f && FoodCount == 0)
+    {
+        HighestPriorityNeed = EItemType::Food;
+    }
+    else if (ShotgunCount == 0)
+    {
+        HighestPriorityNeed = EItemType::Shotgun;
+    }
+    
 
-    //if (HealthComp && HealthComp->GetHealth() < 0.4f)
-    //{
-    //    for (int32 i = 0; i < Items.Num(); ++i)
-    //    {
-    //        if (Items[i] && Items[i]->GetItemType() == EItemType::Medkit)
-    //        {
-    //            Items[i]->UseItem(*Survivor);
-    //            Items[i] = nullptr;
-    //            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Low Health, used Medkit"));
-    //            break;
-    //        }
-    //    }
-    //}
-
-    //if (StaminaComp && StaminaComp->GetCurrentStamina() < 0.3f)
-    //{
-    //    for (int32 i = 0; i < Items.Num(); ++i)
-    //    {
-    //        if (Items[i] && Items[i]->GetItemType() == EItemType::Food)
-    //        {
-    //            Items[i]->UseItem(*Survivor);
-    //            Items[i] = nullptr;
-    //            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Low Stamina, ate Food"));
-    //            break;
-    //        }
-    //    }
-    //}
-
-    ////Create Ideal Loadout
-    //int32 PistolCount = 0;
-    //int32 ShotgunCount = 0;
-    //int32 TotalItems = 0;
-
-    //for (ABaseItem* Item : Items)
-    //{
-    //    if (Item != nullptr)
-    //    {
-    //        TotalItems++;
-    //        if (Item->GetItemType() == EItemType::Pistol) PistolCount++;
-    //        if (Item->GetItemType() == EItemType::Shotgun) ShotgunCount++;
-    //    }
-    //}
-
-    //bool HasNoWeapons = (PistolCount < 1 || ShotgunCount < 1);
-
-    //bool HasAmmo = false;
-    //for (ABaseItem* Item : Items)
-    //{
-    //    if (Item && (Item->GetItemType() == EItemType::Pistol || Item->GetItemType() == EItemType::Shotgun))
-    //    {
-    //        if (Item->GetValue() > 0)
-    //        {
-    //            HasAmmo = true;
-    //            break;
-    //        }
-    //    }
-    //}
+    BB->SetValueAsEnum(NeededItemTypeKey.SelectedKeyName, static_cast<uint8>(HighestPriorityNeed));
 
 
-    //bool bNeedsWeaponState = HasNoWeapons || !HasAmmo;
-    //bool bIsInventoryFullState = (TotalItems >= Inventory->GetInventoryCapacity());
+    //Filter
+    if (TotalItems >= Inventory->GetInventoryCapacity())
+    {
+        BB->SetValueAsBool(IsInventoryFullKey.SelectedKeyName, true);
+    }
+    else
+    {
+        const auto* CurrentItemTarget = Cast<ABaseItem>(BB->GetValueAsObject(TEXT("ItemActor")));
+        if (CurrentItemTarget)
+        {
+            EItemType TargetType = CurrentItemTarget->GetItemType();
+            bool bRejectItem = false;
 
+            if (TargetType == EItemType::Pistol && PistolCount >= 1) bRejectItem = true;
+            if (TargetType == EItemType::Shotgun && ShotgunCount >= 1) bRejectItem = true;
+            if (TargetType == EItemType::Food && FoodCount >= 2) bRejectItem = true;
+            if (TargetType == EItemType::Medkit && MedkitCount >= 1) bRejectItem = true;
+            if (TargetType == EItemType::Garbage) bRejectItem = true;
 
-    //if (bNeedsWeaponState)
-    //{
-    //    BB->SetValueAsBool(NeedsWeaponsKey.SelectedKeyName, true);
-    //}
-    //else
-    //{
-    //    BB->ClearValue(NeedsWeaponsKey.SelectedKeyName);
-    //}
-
-    //if (bIsInventoryFullState)
-    //{
-    //    BB->SetValueAsBool(IsInventoryFullKey.SelectedKeyName, true);
-    //}
-    //else
-    //{
-    //    BB->ClearValue(IsInventoryFullKey.SelectedKeyName);
-    //}
-
-
+            BB->SetValueAsBool(IsInventoryFullKey.SelectedKeyName, bRejectItem);
+        }
+        else
+        {
+            BB->SetValueAsBool(IsInventoryFullKey.SelectedKeyName, false);
+        }
+    }
 }

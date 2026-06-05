@@ -54,7 +54,7 @@ EBTNodeResult::Type UBTT_Attack_OlivierStan::ExecuteTask(UBehaviorTreeComponent&
 
     WeaponToUse->UseItem(*Survivor);
 
-    DrawDebugLine(GetWorld(), Survivor->GetActorLocation(), Zombie->GetActorLocation(), FColor::Orange, false, 0.2f, 0, 4.0f);
+    DrawDebugLine(GetWorld(), Survivor->GetActorLocation(), Zombie->GetActorLocation(), FColor::Purple, false, 0.2f, 0, 4.0f);
 
     return EBTNodeResult::Succeeded;
 }

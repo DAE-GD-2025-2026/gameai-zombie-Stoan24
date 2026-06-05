@@ -33,9 +33,16 @@ public:
 	ABaseItem* FindClosestRememberedItem(FVector CurrentLocation, EItemType DesiredType);
 	void ForgetPickedUpItem(ABaseItem* ItemActor);
 
+	UPROPERTY(EditAnywhere, Category = "Flee")
+	float DangerRadius{ 400.f };
+
+	UPROPERTY(EditAnywhere, Category = "Flee")
+	float RepulsionStrength{ 600.f };
+
 private:
 
 	void UpdateClosestZombie(APawn* Pawn, UBlackboardComponent* BB);
+	void UpdateMovemennt(float DeltaTime, APawn* Pawn, const AAIController* Controller);
 
 	//Track zombies
 	TArray<AActor*> KnownZombies;
