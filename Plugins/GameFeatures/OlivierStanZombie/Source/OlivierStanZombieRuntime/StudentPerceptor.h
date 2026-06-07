@@ -33,6 +33,8 @@ public:
 	ABaseItem* FindClosestRememberedItem(FVector CurrentLocation, EItemType DesiredType);
 	void ForgetPickedUpItem(ABaseItem* ItemActor);
 
+	TArray<AActor*> GetZombies() { return KnownZombies; }
+
 	UPROPERTY(EditAnywhere, Category = "Flee")
 	float DangerRadius{ 400.f };
 
@@ -42,7 +44,6 @@ public:
 private:
 
 	void UpdateClosestZombie(APawn* Pawn, UBlackboardComponent* BB);
-	void UpdateMovemennt(float DeltaTime, APawn* Pawn, const AAIController* Controller);
 
 	//Track zombies
 	TArray<AActor*> KnownZombies;
@@ -56,4 +57,18 @@ private:
 
 	UPROPERTY()
 	TArray<ABaseItem*> ItemMemory;
+
+
+	//Looking behind 
+	float LookBehindCooldownTimer = 0.0f;
+	float LookBehindDurationTimer = 0.0f;
+	bool bIsLookingBehind = false;
+
+	const float TimeBetweenGlances = 3.0f;
+	const float GlanceDuration = 0.25f;
+
+	bool bIsReactingToDamage = false;
+	FRotator DamageTargetRotation;
+	float DamageReactionTimer = 0.0f;
+	const float DamageReactionDuration = 0.75f;
 };

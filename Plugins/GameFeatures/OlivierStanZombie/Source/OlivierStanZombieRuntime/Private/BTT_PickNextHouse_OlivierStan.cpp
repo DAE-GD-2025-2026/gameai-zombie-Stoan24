@@ -28,11 +28,14 @@ EBTNodeResult::Type UBTT_PickNextHouse_OlivierStan::ExecuteTask(UBehaviorTreeCom
     UStudentPerceptor* Perceptor = Pawn->FindComponentByClass<UStudentPerceptor>();
     if (!Perceptor) return EBTNodeResult::Failed;
 
-    if (AActor* OldHouse = Cast<AActor>(BB->GetValueAsObject(HouseActorKey.SelectedKeyName)))
+
+    //Clear old house
+    if (Cast<AActor>(BB->GetValueAsObject(HouseActorKey.SelectedKeyName)))
     {
         BB->ClearValue(HouseActorKey.SelectedKeyName);
     }
 
+    //Find houses in memory
     if (!Perceptor->HasVillageHouses())
     {
         BB->SetValueAsBool(HasVillageTargetKey.SelectedKeyName, false);
@@ -41,7 +44,12 @@ EBTNodeResult::Type UBTT_PickNextHouse_OlivierStan::ExecuteTask(UBehaviorTreeCom
 
 
     AActor* NextHouse = Perceptor->PopNextVillageHouse();
-    BB->SetValueAsObject(HouseActorKey.SelectedKeyName, NextHouse);
+    
+    if (IsValid(NextHouse))
+    {
+        BB->SetValueAsObject(HouseActorKey.SelectedKeyName, NextHouse);
+        return EBTNodeResult::Succeeded;
+    }
 
     return EBTNodeResult::Succeeded;
 }

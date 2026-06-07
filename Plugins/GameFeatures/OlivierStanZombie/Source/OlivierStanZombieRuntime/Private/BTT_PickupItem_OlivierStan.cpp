@@ -52,7 +52,8 @@ void UBTT_PickupItem_OlivierStan::TickTask(UBehaviorTreeComponent& OwnerComp, ui
     if (!Survivor || !BB) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
 
 
-    if (!Item)
+
+    if (!Item || Item->GetItemType() == EItemType::Garbage)
     {
         BB->ClearValue(ItemActorKey.SelectedKeyName);
         BB->ClearValue(ItemLocationKey.SelectedKeyName);
@@ -62,22 +63,31 @@ void UBTT_PickupItem_OlivierStan::TickTask(UBehaviorTreeComponent& OwnerComp, ui
     }
 
     auto* Inventory = Survivor->GetComponentByClass<UInventoryComponent>();
-    if (!Inventory) { FinishLatentTask(OwnerComp, EBTNodeResult::Failed); return; }
+    if (!Inventory)
+    {
+	    FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+    	return;
+    }
 
 
-
+    //Pickup when close enough
     float Distance = FVector::Dist2D(Survivor->GetActorLocation(), Item->GetActorLocation());
     UE_LOG(LogTemp, Warning, TEXT("Survivor Pos: %s | Item Pos: %s"), *Survivor->GetActorLocation().ToString(), *Item->GetActorLocation().ToString());
+
 
     if (Distance < Inventory->GetPickupRange())
     {
         GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow,
             FString::Printf(TEXT("Picking up: %s"), *Item->GetClass()->GetName()));
 
-        for (int i = 0; i < Inventory->GetInventoryCapacity(); i++)
+        const TArray<ABaseItem*>& CurrentInventory = Inventory->GetInventory();
+        int Capacity = Inventory->GetInventoryCapacity();
+
+        for (int i = 0; i < Capacity; i++)
         {
-            if (Inventory->GetInventory()[i] == nullptr)
+            if (i < CurrentInventory.Num() && CurrentInventory[i] == nullptr)
             {
+                //Clear from memory
                 if (auto* Perceptor = Survivor->FindComponentByClass<UStudentPerceptor>())
                 {
                     Perceptor->ForgetPickedUpItem(Item);
@@ -97,5 +107,16 @@ void UBTT_PickupItem_OlivierStan::TickTask(UBehaviorTreeComponent& OwnerComp, ui
         BB->ClearValue(ItemLocationKey.SelectedKeyName);
         BB->SetValueAsBool(TEXT("IsPursuingItem"), false);
         FinishLatentTask(OwnerComp, EBTNodeResult::Failed);
+    }
+}
+
+void UBTT_PickupItem_OlivierStan::OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory,
+	EBTNodeResult::Type TaskResult)
+{
+	Super::OnTaskFinished(OwnerComp, NodeMemory, TaskResult);
+
+    if (UBlackboardComponent* BB = OwnerComp.GetBlackboardComponent())
+    {
+        BB->ClearValue(ItemLocationKey.SelectedKeyName);
     }
 }

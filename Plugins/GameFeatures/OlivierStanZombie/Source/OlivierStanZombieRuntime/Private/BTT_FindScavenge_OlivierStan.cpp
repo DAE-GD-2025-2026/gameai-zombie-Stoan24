@@ -19,10 +19,11 @@ EBTNodeResult::Type UBTT_FindScavenge_OlivierStan::ExecuteTask(UBehaviorTreeComp
     AActor* HouseActor = Cast<AActor>(BB->GetValueAsObject(HouseActorKey.SelectedKeyName));
     if (!HouseActor) return EBTNodeResult::Failed;
 
-
+    //Get middle of house
     FVector Origin;
     FVector Extents;
     HouseActor->GetActorBounds(true, Origin, Extents);
+
 
     UNavigationSystemV1* NavSys = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
     if (!NavSys) return EBTNodeResult::Failed;

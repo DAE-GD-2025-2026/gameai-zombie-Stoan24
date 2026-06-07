@@ -21,11 +21,14 @@ protected:
     virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
     UPROPERTY(EditAnywhere, Category = "Blackboard")
-    FBlackboardKeySelector NeedsWeaponsKey;
+    FBlackboardKeySelector NeedsWeaponKey;
 
     UPROPERTY(EditAnywhere, Category = "Blackboard")
     FBlackboardKeySelector IsInventoryFullKey;
 
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
-    FBlackboardKeySelector NeededItemTypeKey;;
+    FBlackboardKeySelector NeededItemTypeKey;
+
+    UPROPERTY(EditAnywhere, Category = "Blackboard")
+    FBlackboardKeySelector ZombieActorKey;
 };

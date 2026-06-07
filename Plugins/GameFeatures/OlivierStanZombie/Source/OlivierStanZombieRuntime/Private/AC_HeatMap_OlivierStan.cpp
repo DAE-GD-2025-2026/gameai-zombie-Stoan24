@@ -3,11 +3,9 @@
 
 #include "AC_HeatMap_OlivierStan.h"
 
-// Sets default values for this component's properties
+
 UAC_HeatMap_OlivierStan::UAC_HeatMap_OlivierStan()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 }
 
@@ -19,8 +17,19 @@ void UAC_HeatMap_OlivierStan::TickComponent(float DeltaTime, ELevelTick TickType
 
 	if (AActor* Owner = GetOwner())
 	{
+        FVector WorldPos = Owner->GetActorLocation();
+        UE_LOG(LogTemp, Warning, TEXT("World Pos: X=%.1f Y=%.1f"), WorldPos.X, WorldPos.Y);
+
 		FVector2D CurrentGrid = WorldToGrid(Owner->GetActorLocation());
-		HeatmapGrid.FindOrAdd(CurrentGrid)++;
+
+		UE_LOG(LogTemp, Warning, TEXT("Heatmap cell registered: X=%.0f Y=%.0f"), CurrentGrid.X, CurrentGrid.Y);
+
+		if (CurrentGrid != LastRegisteredGrid)
+		{
+			HeatmapGrid.FindOrAdd(CurrentGrid)++;
+
+			LastRegisteredGrid = CurrentGrid;
+		}
 	}
 }
 
@@ -36,44 +45,31 @@ FVector UAC_HeatMap_OlivierStan::GridToWorld(FVector2D GridIdx) const
 
 FVector UAC_HeatMap_OlivierStan::FindNearestUnexploredLocation(FVector CurrentLocation, float MaxSearchRadius)
 {
-	FVector2D CenterGrid = WorldToGrid(CurrentLocation);
-	int32 SearchRingRadius = FMath::CeilToInt(MaxSearchRadius / CellSize);
+    FVector2D CenterGrid = WorldToGrid(CurrentLocation);
+    int MaxSearchRings = FMath::CeilToInt(MaxSearchRadius / CellSize);
 
-	float BestDistance = MAX_FLT;
-	FVector2D BestGridIndex = CenterGrid;
-	bool bFoundUnexplored = false;
+    TArray<FVector2D> Candidates;
 
+    for (int X = CenterGrid.X - MaxSearchRings; X <= CenterGrid.X + MaxSearchRings; X++)
+    {
+        for (int Y = CenterGrid.Y - MaxSearchRings; Y <= CenterGrid.Y + MaxSearchRings; Y++)
+        {
+            FVector2D Cell(X, Y);
+            if (FVector2D::Distance(CenterGrid, Cell) <= MaxSearchRings)
+            {
+                if (!HeatmapGrid.Contains(Cell) || HeatmapGrid[Cell] == 0)
+                {
+                    Candidates.Add(Cell);
+                }
+            }
+        }
+    }
 
-	//Spiral outward
-	for (int32 Radius = 1; Radius <= SearchRingRadius; ++Radius)
-	{
-		for (int32 x = -Radius; x <= Radius; ++x)
-		{
-			for (int32 y = -Radius; y <= Radius; ++y)
-			{
-				if (FMath::Abs(x) == Radius || FMath::Abs(y) == Radius)
-				{
-					FVector2D CheckGrid = CenterGrid + FVector2D(x, y);
+    if (Candidates.IsEmpty()) return CurrentLocation;
 
-					if (!HeatmapGrid.Contains(CheckGrid) || HeatmapGrid[CheckGrid] == 0)
-					{
-						FVector TargetWorldPos = GridToWorld(CheckGrid);
-						float DistSq = FVector::DistSquared(CurrentLocation, TargetWorldPos);
-
-						if (DistSq < BestDistance)
-						{
-							BestDistance = DistSq;
-							BestGridIndex = CheckGrid;
-							bFoundUnexplored = true;
-						}
-					}
-				}
-			}
-		}
-		if (bFoundUnexplored) break;
-	}
-
-	FVector ResultWorldLocation = GridToWorld(BestGridIndex);
-	ResultWorldLocation.Z = CurrentLocation.Z;
-	return ResultWorldLocation;
+    //Pick random unvisited cell
+    FVector2D Chosen = Candidates[FMath::RandRange(0, Candidates.Num() - 1)];
+    FVector Result = GridToWorld(Chosen);
+    Result.Z = CurrentLocation.Z;
+    return Result;
 }

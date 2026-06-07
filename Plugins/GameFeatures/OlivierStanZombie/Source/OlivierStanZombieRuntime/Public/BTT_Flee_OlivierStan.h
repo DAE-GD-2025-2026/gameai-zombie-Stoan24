@@ -9,6 +9,16 @@
 /**
  * 
  */
+
+
+UENUM(BlueprintType)
+enum class ESurvivorTask : uint8
+{
+    Explore UMETA(DisplayName = "Explore"),
+    Scavenge UMETA(DisplayName = "Scavenge"),
+    CollectItem UMETA(DisplayName = "Collect Item")
+};
+
 UCLASS()
 class OLIVIERSTANZOMBIERUNTIME_API UBTT_Flee_OlivierStan : public UBTTaskNode
 {
@@ -19,6 +29,8 @@ public:
 
 protected:
     virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+    virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+    virtual void OnTaskFinished(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTNodeResult::Type TaskResult) override;
 
     UPROPERTY(EditAnywhere, Category = "Flee")
     float FleeDistance{ 600.f };

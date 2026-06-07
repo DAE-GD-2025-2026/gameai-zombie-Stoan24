@@ -28,14 +28,20 @@ EBTNodeResult::Type UBTT_LookupItem_OlivierStan::ExecuteTask(UBehaviorTreeCompon
 	if (!Perceptor) return EBTNodeResult::Failed;
 
 
-	uint8 EnumValue = BB->GetValueAsEnum(NeededItemTypeKey.SelectedKeyName);
+
+	int EnumValue = BB->GetValueAsEnum(NeededItemTypeKey.SelectedKeyName);
 	EItemType DynamicNeededType = static_cast<EItemType>(EnumValue);
 
+	//No active needs = garbage
 	if (DynamicNeededType == EItemType::Garbage)
 	{
+		BB->ClearValue(ItemActorKey.SelectedKeyName);
+		BB->ClearValue(ItemLocationKey.SelectedKeyName);
+		BB->SetValueAsBool(TEXT("IsPursuingItem"), false);
 		return EBTNodeResult::Failed;
 	}
 
+	//Look inside memory for items
 	ABaseItem* FoundItem = Perceptor->FindClosestRememberedItem(Pawn->GetActorLocation(), DynamicNeededType);
 
 	if (FoundItem)

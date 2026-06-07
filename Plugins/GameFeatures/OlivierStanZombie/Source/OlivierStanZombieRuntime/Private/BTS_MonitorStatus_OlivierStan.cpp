@@ -34,10 +34,13 @@ void UBTS_MonitorStatus_OlivierStan::TickNode(UBehaviorTreeComponent& OwnerComp,
 
     if (!Inventory || !HealthComp || !StaminaComp) return;
 
-    //Health & Stamina
+
 
     TArray<ABaseItem*> Items = Inventory->GetInventory();
+    bool bInventoryMutated = false;
 
+
+    //Use Medkit when low health
     if (HealthComp->GetHealth() <= 6)
     {
         for (int i = 0; i < Items.Num(); ++i)
@@ -46,6 +49,7 @@ void UBTS_MonitorStatus_OlivierStan::TickNode(UBehaviorTreeComponent& OwnerComp,
             {
                 Inventory->UseItem(i);
                 Inventory->RemoveItem(i);
+                bInventoryMutated = true;
 
                 GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Low Health --> used Medkit"));
                 break;
@@ -53,6 +57,15 @@ void UBTS_MonitorStatus_OlivierStan::TickNode(UBehaviorTreeComponent& OwnerComp,
         }
     }
 
+    //Sync
+    if (bInventoryMutated)
+    {
+        Items = Inventory->GetInventory();
+        bInventoryMutated = false;
+    }
+
+
+    //use food when low stamina
     if (StaminaComp->GetCurrentStamina() < 3.0f)
     {
         for (int i = 0; i < Items.Num(); ++i)
@@ -61,27 +74,28 @@ void UBTS_MonitorStatus_OlivierStan::TickNode(UBehaviorTreeComponent& OwnerComp,
             {
                 Inventory->UseItem(i);
                 Inventory->RemoveItem(i);
+
                 GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Low Stamina --> ate Food"));
                 break;
             }
         }
     }
 
-    //Inventory Management
+    //Sync
+    if (bInventoryMutated)
+    {
+        Items = Inventory->GetInventory();
+        bInventoryMutated = false;
+    }
 
-    int PistolCount = 0;
-    int ShotgunCount = 0;
-    int FoodCount = 0;
-    int MedkitCount = 0;
-    int TotalItems = 0;
 
-    int PistolWithAmmoCount = 0;
-    int ShotgunWithAmmoCount = 0;
 
-    for (int i = 0; i < Items.Num(); ++i)
+    //Weapon Cleanup
+
+    //Backward iteration to remove weapons when no more ammo
+    for (int i = Items.Num() - 1; i >= 0; --i)
     {
         ABaseItem* Item = Items[i];
-
         if (Item != nullptr)
         {
             bool bIsSpentPistol = (Item->GetItemType() == EItemType::Pistol && Item->GetValue() <= 0);
@@ -91,11 +105,30 @@ void UBTS_MonitorStatus_OlivierStan::TickNode(UBehaviorTreeComponent& OwnerComp,
             {
                 Inventory->RemoveItem(i);
                 GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, TEXT("Removed Weapon --> no ammo left"));
-                continue;
             }
+        }
+    }
 
-            TotalItems++;
 
+    Items = Inventory->GetInventory();
+
+    int PistolCount = 0;
+    int ShotgunCount = 0;
+    int FoodCount = 0;
+    int MedkitCount = 0;
+    int TotalItemCount = 0;
+
+    int PistolWithAmmoCount = 0;
+    int ShotgunWithAmmoCount = 0;
+
+
+    //Count all Inventory items
+    for (int i = 0; i < Items.Num(); ++i)
+    {
+        ABaseItem* Item = Items[i];
+
+        if (Item != nullptr)
+        {
             if (Item->GetItemType() == EItemType::Pistol)
             {
                 PistolCount++;
@@ -111,19 +144,26 @@ void UBTS_MonitorStatus_OlivierStan::TickNode(UBehaviorTreeComponent& OwnerComp,
             if (Item->GetItemType() == EItemType::Medkit) MedkitCount++;
         }
     }
+    TotalItemCount += PistolWithAmmoCount + ShotgunWithAmmoCount + FoodCount + MedkitCount;
 
-    //Combat
-    if (PistolWithAmmoCount == 0 || ShotgunWithAmmoCount == 0)
+
+
+
+    //Flag when player has no weapon
+    if (PistolWithAmmoCount == 0 && ShotgunWithAmmoCount == 0)
     {
-        BB->SetValueAsBool(NeedsWeaponsKey.SelectedKeyName, true);
+        BB->SetValueAsBool(NeedsWeaponKey.SelectedKeyName, true);
     }
     else
     {
-        BB->ClearValue(NeedsWeaponsKey.SelectedKeyName);
+        BB->ClearValue(NeedsWeaponKey.SelectedKeyName);
     }
 
-    //Active needs
+
+    //Priority evaluation
     EItemType HighestPriorityNeed = EItemType::Garbage;
+
+    bool bZombieVisible = BB->GetValueAsObject(ZombieActorKey.SelectedKeyName) != nullptr;
 
     if (PistolCount == 0)
     {
@@ -137,39 +177,29 @@ void UBTS_MonitorStatus_OlivierStan::TickNode(UBehaviorTreeComponent& OwnerComp,
     {
         HighestPriorityNeed = EItemType::Food;
     }
-    else if (ShotgunCount == 0)
+    else if (ShotgunWithAmmoCount == 0)
     {
         HighestPriorityNeed = EItemType::Shotgun;
     }
-    
+
+    //Fallback shotgun when being chased
+    if (bZombieVisible && ShotgunWithAmmoCount == 0 && PistolWithAmmoCount > 0)
+    {
+        HighestPriorityNeed = EItemType::Shotgun;
+    }
+
 
     BB->SetValueAsEnum(NeededItemTypeKey.SelectedKeyName, static_cast<uint8>(HighestPriorityNeed));
 
+    Items = Inventory->GetInventory();
 
     //Filter
-    if (TotalItems >= Inventory->GetInventoryCapacity())
+    if (TotalItemCount >= Inventory->GetInventoryCapacity())
     {
         BB->SetValueAsBool(IsInventoryFullKey.SelectedKeyName, true);
     }
     else
     {
-        const auto* CurrentItemTarget = Cast<ABaseItem>(BB->GetValueAsObject(TEXT("ItemActor")));
-        if (CurrentItemTarget)
-        {
-            EItemType TargetType = CurrentItemTarget->GetItemType();
-            bool bRejectItem = false;
-
-            if (TargetType == EItemType::Pistol && PistolCount >= 1) bRejectItem = true;
-            if (TargetType == EItemType::Shotgun && ShotgunCount >= 1) bRejectItem = true;
-            if (TargetType == EItemType::Food && FoodCount >= 2) bRejectItem = true;
-            if (TargetType == EItemType::Medkit && MedkitCount >= 1) bRejectItem = true;
-            if (TargetType == EItemType::Garbage) bRejectItem = true;
-
-            BB->SetValueAsBool(IsInventoryFullKey.SelectedKeyName, bRejectItem);
-        }
-        else
-        {
-            BB->SetValueAsBool(IsInventoryFullKey.SelectedKeyName, false);
-        }
+        BB->SetValueAsBool(IsInventoryFullKey.SelectedKeyName, false);
     }
 }
