@@ -10,6 +10,7 @@
 #include "Common/HealthComponent.h"
 #include "Common/StaminaComponent.h"
 #include "Items/BaseItem.h"
+#include "OlivierStanZombieRuntime/StudentPerceptorOlivierStan.h"
 
 UBTS_MonitorStatus_OlivierStan::UBTS_MonitorStatus_OlivierStan()
 {
@@ -201,5 +202,16 @@ void UBTS_MonitorStatus_OlivierStan::TickNode(UBehaviorTreeComponent& OwnerComp,
     else
     {
         BB->SetValueAsBool(IsInventoryFullKey.SelectedKeyName, false);
+    }
+
+    //Check Village
+
+    APawn* Pawn = Controller->GetPawn();
+    if (!Pawn) return;
+
+    auto* Perceptor = Pawn->FindComponentByClass<UStudentPerceptorOlivierStan>();
+    if (Perceptor->HasVillageHouses())
+    {
+        BB->SetValueAsBool(HasVillageTargetKey.SelectedKeyName, true);
     }
 }

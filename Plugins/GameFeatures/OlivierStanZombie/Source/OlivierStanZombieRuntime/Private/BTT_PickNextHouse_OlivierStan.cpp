@@ -5,7 +5,7 @@
 
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
-#include "OlivierStanZombieRuntime/StudentPerceptor.h"
+#include "OlivierStanZombieRuntime/StudentPerceptorOlivierStan.h"
 
 UBTT_PickNextHouse_OlivierStan::UBTT_PickNextHouse_OlivierStan()
 {
@@ -25,7 +25,7 @@ EBTNodeResult::Type UBTT_PickNextHouse_OlivierStan::ExecuteTask(UBehaviorTreeCom
     APawn* Pawn = Controller->GetPawn();
     if (!Pawn) return EBTNodeResult::Failed;
 
-    UStudentPerceptor* Perceptor = Pawn->FindComponentByClass<UStudentPerceptor>();
+    UStudentPerceptorOlivierStan* Perceptor = Pawn->FindComponentByClass<UStudentPerceptorOlivierStan>();
     if (!Perceptor) return EBTNodeResult::Failed;
 
 

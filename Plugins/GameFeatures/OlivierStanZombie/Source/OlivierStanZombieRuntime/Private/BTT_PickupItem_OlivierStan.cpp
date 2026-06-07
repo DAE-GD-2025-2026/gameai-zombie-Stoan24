@@ -8,7 +8,7 @@
 #include "Common/InventoryComponent.h"
 #include "Items/BaseItem.h"
 #include "Survivor/SurvivorPawn.h"
-#include "../StudentPerceptor.h"
+#include "../StudentPerceptorOlivierStan.h"
 
 UBTT_PickupItem_OlivierStan::UBTT_PickupItem_OlivierStan()
 {
@@ -88,7 +88,7 @@ void UBTT_PickupItem_OlivierStan::TickTask(UBehaviorTreeComponent& OwnerComp, ui
             if (i < CurrentInventory.Num() && CurrentInventory[i] == nullptr)
             {
                 //Clear from memory
-                if (auto* Perceptor = Survivor->FindComponentByClass<UStudentPerceptor>())
+                if (auto* Perceptor = Survivor->FindComponentByClass<UStudentPerceptorOlivierStan>())
                 {
                     Perceptor->ForgetPickedUpItem(Item);
                 }

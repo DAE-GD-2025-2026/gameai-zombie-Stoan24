@@ -5,7 +5,7 @@
 #include "AIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "../StudentPerceptor.h"
+#include "../StudentPerceptorOlivierStan.h"
 #include "Navigation/PathFollowingComponent.h"
 
 UBTS_Movement_OlivierStan::UBTS_Movement_OlivierStan()
@@ -26,7 +26,7 @@ void UBTS_Movement_OlivierStan::TickNode(UBehaviorTreeComponent& OwnerComp, uint
     if (!Pawn || !BB) return;
 
     auto* MovementComp = Pawn->FindComponentByClass<UCharacterMovementComponent>();
-    auto* Perceptor = Pawn->FindComponentByClass<UStudentPerceptor>();
+    auto* Perceptor = Pawn->FindComponentByClass<UStudentPerceptorOlivierStan>();
     if (!MovementComp || !Perceptor) return;
 
 

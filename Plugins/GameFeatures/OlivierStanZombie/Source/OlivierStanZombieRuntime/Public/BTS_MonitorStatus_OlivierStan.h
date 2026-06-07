@@ -29,6 +29,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
     FBlackboardKeySelector NeededItemTypeKey;
 
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+    FBlackboardKeySelector HasVillageTargetKey;
+
+
     UPROPERTY(EditAnywhere, Category = "Blackboard")
     FBlackboardKeySelector ZombieActorKey;
 };
